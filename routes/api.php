@@ -15,14 +15,27 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+// public :
 
+Route::group(["prefix" => "/v1"], function () {
+
+    Route::group(["prefix" => "/user"], function () {
+        Route::post("/register", [UserController::class, "register"]);
+    });
+
+});
+
+
+
+// protected :
 Route::group(["middleware" => "auth:sanctum"], function () {
 
     Route::group(["prefix" => "/v1"], function () {
 
         Route::group(["prefix" => "/user"], function () {
 
-            Route::get("/get/{id}", [UserController::class, "get"]);
+            Route::get("/get", [UserController::class, "get"]);
+            Route::put("/update", [UserController::class, "update"]);
 
         });
 
