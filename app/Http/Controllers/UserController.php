@@ -158,5 +158,11 @@ class UserController extends Controller
 
     }
 
+    // log out :
+    public function logout(){
+        Auth::user()->tokens()->delete();
+        return response(["message"=>"User Logged Out !"],200);
+    }
+
 
 }
