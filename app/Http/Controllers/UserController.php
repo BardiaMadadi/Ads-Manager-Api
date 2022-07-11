@@ -130,5 +130,33 @@ class UserController extends Controller
 
     }
 
+    // login user :
+    public function login(Request $request){
+        $validator = Validator::make($request->all(),
+        [
+            'email' => 'required|email|exists:users|max:50',
+            'password' => 'required|max:50',
+
+        ]);
+
+        if(!$validator->fails()){
+            $email = $validator->validated()['email'];
+            $password = $validator->validated()['password'];
+            $user = User::where('email',$email)->first();
+            // checks pwd
+            if(Hash::check($password,$user->password)){
+                $user->tokens()->delete();
+                $token = $user->createToken("salt". $validator->validated()["email"] ."sugar")->plainTextToken;
+                return response([$user,$token],200);
+
+            }else{
+                return response(["message"=>"Password is Incorrect"],401);
+            }
+        }else{
+            return response(["message"=>"Cant Validate Request",$validator->errors()],400);
+        }
+
+    }
+
 
 }

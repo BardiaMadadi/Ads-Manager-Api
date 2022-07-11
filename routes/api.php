@@ -21,6 +21,7 @@ Route::group(["prefix" => "/v1"], function () {
 
     Route::group(["prefix" => "/user"], function () {
         Route::post("/register", [UserController::class, "register"]);
+        Route::post("/login", [UserController::class, "login"]);
     });
 
 });
