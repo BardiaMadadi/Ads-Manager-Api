@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
+use phpDocumentor\Reflection\DocBlock\Tags\Link;
 
 class UserController extends Controller
 {
@@ -32,37 +33,48 @@ class UserController extends Controller
      */
     public function register(Request $request)
     {
+        // validates inputs :
         $validate = Validator::make(
             $request->all(),
             [
                 'name' => 'required|max:50',
                 'email' => 'required|email|unique:users|max:50',
-                'password' => 'required|max:50'
+                'password' => 'required|max:50',
+                'icon' => 'required|image|mimes:png,jpg,jpeg|max:2048'
             ]
         );
-
+        // if validate = true
         if (!$validate->fails()) {
+
+            $iconPath = "public/icons";
+            // user arg :
             $name = $validate->validated()["name"];
             $email = $validate->validated()["email"];
             $password = $validate->validated()["password"];
 
+            // input icon
+            $icon = $request->file('icon');
+            if ($icon){
+                //
+                $iconName = $icon->getBasename() . time() .'.'. $icon->getClientOriginalExtension();
+                $icon->storeAs($iconPath,$iconName);
 
-            $user = new User(
-                [
-                    "name" => $name,
-                    "email" => $email,
-                    "password" => bcrypt($password)
-                ]
-            );
-            $user->saveOrFail();
-            $token = $user->createToken("salt". $validate->validated()["name"] ."sugar")->plainTextToken;
-            return response(
-                [
-                 $user,
-                 $token
-                ],
-                201
-            );
+                $user = new User(
+                    [
+                        "name" => $name,
+                        "email" => $email,
+                        "password" => bcrypt($password),
+                        "icon" => asset('/storage/icons/'. $iconName)
+                    ]
+                );
+                $user->saveOrFail();
+                $token = $user->createToken("salt". $validate->validated()["name"] ."sugar")->plainTextToken;
+                return response([
+                    $user,
+                    $token
+
+                ],200);
+            }
 
         } else {
             return response([
