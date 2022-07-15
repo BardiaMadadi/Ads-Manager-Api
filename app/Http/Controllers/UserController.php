@@ -5,9 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
-use phpDocumentor\Reflection\DocBlock\Tags\Link;
+use File;
 
 class UserController extends Controller
 {
@@ -25,12 +26,6 @@ class UserController extends Controller
 
     }
     // register user
-
-    /**
-     * @throws \Throwable
-     * @throws \Illuminate\Validation\ValidationException
-     * register user
-     */
     public function register(Request $request)
     {
         // validates inputs :
@@ -57,18 +52,17 @@ class UserController extends Controller
             if ($icon){
                 //
                 $iconName = $icon->getBasename() . time() .'.'. $icon->getClientOriginalExtension();
-                $icon->storeAs($iconPath,$iconName);
-
                 $user = new User(
                     [
                         "name" => $name,
                         "email" => $email,
                         "password" => bcrypt($password),
-                        "icon" => asset('/storage/icons/'. $iconName)
+                        "icon" => 'null'
                     ]
                 );
                 $user->saveOrFail();
                 $token = $user->createToken("salt". $validate->validated()["name"] ."sugar")->plainTextToken;
+                $this->upload($iconName,$iconPath, $icon,$user);
                 return response([
                     $user,
                     $token
@@ -91,6 +85,7 @@ class UserController extends Controller
         $validate = Validator::make(
             $request->all(),
             [
+                'icon' => 'image|mimes:png,jpg,jpeg|max:2048',
                 'name' => 'max:50',
                 'email' => 'email|unique:users|max:50',
                 'password' => 'max:50',
@@ -102,6 +97,20 @@ class UserController extends Controller
             $user = Auth::user();
             if($user != null){
                 if(Hash::check($validate->validated()['last_password'],$user->password)){
+
+                    if($request->file('icon') !== null){
+                        $iconPath = 'public/icons/';
+                        $userIcon = $user->icon;
+                        $iconName = str_replace('/','', str_replace(asset('/storage/icons/'),'',$userIcon));
+                        if(Storage::exists($iconPath.$iconName)){
+                            Storage::delete($iconPath.$iconName);
+                            $this->upload($iconName,$iconPath,$request->file('icon'),$user);
+
+                        }else{
+                            return response(["message"=>"there is not icon with that name","name"=>$iconName],400);
+                        }
+
+                    }
 
                     if(isset($validate->validated()['name'])){
 
@@ -174,6 +183,14 @@ class UserController extends Controller
     public function logout(){
         Auth::user()->tokens()->delete();
         return response(["message"=>"User Logged Out !"],200);
+    }
+
+    private function upload(string $iconName,string $iconPath, array|\Illuminate\Http\UploadedFile $icon, User $user)
+    {
+        $icon->storeAs($iconPath,$iconName);
+        $user->icon = asset('/storage/icons/'. $iconName);
+        $user->saveOrFail();
+
     }
 
 
